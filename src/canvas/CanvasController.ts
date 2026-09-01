@@ -70,12 +70,12 @@ export class CanvasController {
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(content)
 
-    content.addEventListener('pointerdown', this.handlePointerDown)
+    overlay.addEventListener('pointerdown', this.handlePointerDown)
     window.addEventListener('pointermove', this.handlePointerMove)
     window.addEventListener('pointerup', this.handlePointerUp)
     window.addEventListener('pointercancel', this.handlePointerUp)
-    content.addEventListener('wheel', this.handleWheel, { passive: false })
-    content.addEventListener('dblclick', this.handleDoubleClick)
+    overlay.addEventListener('wheel', this.handleWheel, { passive: false })
+    overlay.addEventListener('dblclick', this.handleDoubleClick)
     window.addEventListener('keydown', this.handleKeyDown)
     window.addEventListener('keyup', this.handleKeyUp)
 
@@ -87,12 +87,12 @@ export class CanvasController {
 
   destroy() {
     this.resizeObserver.disconnect()
-    this.content.removeEventListener('pointerdown', this.handlePointerDown)
+    this.overlay.removeEventListener('pointerdown', this.handlePointerDown)
     window.removeEventListener('pointermove', this.handlePointerMove)
     window.removeEventListener('pointerup', this.handlePointerUp)
     window.removeEventListener('pointercancel', this.handlePointerUp)
-    this.content.removeEventListener('wheel', this.handleWheel)
-    this.content.removeEventListener('dblclick', this.handleDoubleClick)
+    this.overlay.removeEventListener('wheel', this.handleWheel)
+    this.overlay.removeEventListener('dblclick', this.handleDoubleClick)
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
     this.unsubTool()
@@ -321,7 +321,7 @@ export class CanvasController {
   }
 
   private handlePointerDown = (e: PointerEvent) => {
-    this.content.setPointerCapture(e.pointerId)
+    this.overlay.setPointerCapture(e.pointerId)
     const screen = this.screenPoint(e)
     this.pointers.set(e.pointerId, screen)
 
