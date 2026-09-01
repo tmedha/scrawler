@@ -8,7 +8,7 @@ type Listener = () => void
 
 const listeners = new Set<Listener>()
 
-function read(): Tab[] {
+function readFromStorage(): Tab[] {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw) return []
   try {
@@ -18,7 +18,16 @@ function read(): Tab[] {
   }
 }
 
+function sortTabs(tabs: Tab[]): Tab[] {
+  return [...tabs].sort((a, b) => a.order - b.order)
+}
+
+let cache: Tab[] = readFromStorage()
+let sortedCache: Tab[] = sortTabs(cache)
+
 function write(tabs: Tab[]) {
+  cache = tabs
+  sortedCache = sortTabs(tabs)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs))
   listeners.forEach((l) => l())
 }
@@ -29,7 +38,7 @@ export function subscribeTabs(listener: Listener): () => void {
 }
 
 export function getTabs(): Tab[] {
-  return read().sort((a, b) => a.order - b.order)
+  return sortedCache
 }
 
 export function getActiveTabId(): string | null {
@@ -42,39 +51,37 @@ export function setActiveTabId(id: string) {
 }
 
 export function createTab(name = 'Untitled'): Tab {
-  const tabs = read()
   const tab: Tab = {
     id: nanoid(),
     name,
-    order: tabs.length ? Math.max(...tabs.map((t) => t.order)) + 1 : 0,
+    order: cache.length ? Math.max(...cache.map((t) => t.order)) + 1 : 0,
     shared: false,
   }
-  write([...tabs, tab])
+  write([...cache, tab])
   return tab
 }
 
 export function createJoinedTab(roomId: string, password: string, name = 'Shared canvas'): Tab {
-  const tabs = read()
-  const existing = tabs.find((t) => t.roomId === roomId)
+  const existing = cache.find((t) => t.roomId === roomId)
   if (existing) return existing
   const tab: Tab = {
     id: nanoid(),
     name,
-    order: tabs.length ? Math.max(...tabs.map((t) => t.order)) + 1 : 0,
+    order: cache.length ? Math.max(...cache.map((t) => t.order)) + 1 : 0,
     shared: true,
     roomId,
     roomPassword: password,
   }
-  write([...tabs, tab])
+  write([...cache, tab])
   return tab
 }
 
 export function renameTab(id: string, name: string) {
-  write(read().map((t) => (t.id === id ? { ...t, name } : t)))
+  write(cache.map((t) => (t.id === id ? { ...t, name } : t)))
 }
 
 export function deleteTab(id: string) {
-  write(read().filter((t) => t.id !== id))
+  write(cache.filter((t) => t.id !== id))
 }
 
 export function setTabShared(
@@ -84,7 +91,7 @@ export function setTabShared(
   roomPassword?: string
 ) {
   write(
-    read().map((t) =>
+    cache.map((t) =>
       t.id === id
         ? {
             ...t,
@@ -98,8 +105,7 @@ export function setTabShared(
 }
 
 export function reorderTabs(orderedIds: string[]) {
-  const tabs = read()
-  const byId = new Map(tabs.map((t) => [t.id, t]))
+  const byId = new Map(cache.map((t) => [t.id, t]))
   const reordered = orderedIds
     .map((id, i) => {
       const t = byId.get(id)
@@ -110,7 +116,6 @@ export function reorderTabs(orderedIds: string[]) {
 }
 
 export function ensureAtLeastOneTab(): Tab {
-  const tabs = getTabs()
-  if (tabs.length > 0) return tabs[0]
+  if (sortedCache.length > 0) return sortedCache[0]
   return createTab('My canvas')
 }
