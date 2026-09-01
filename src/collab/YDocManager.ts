@@ -6,11 +6,7 @@ import type { ShapesMap } from './shapes'
 import { initLocalPresence } from './awareness'
 import { makeUndoManager } from './undo'
 
-const SIGNALING_SERVERS = [
-  'wss://signaling.yjs.dev',
-  'wss://y-webrtc-signaling-eu.herokuapp.com',
-  'wss://y-webrtc-signaling-us.herokuapp.com',
-]
+const SIGNALING_SERVERS = ['ws://localhost:4444']
 
 export interface DocSession {
   tabId: string
