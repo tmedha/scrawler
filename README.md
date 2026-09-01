@@ -42,16 +42,17 @@ A workflow at `.github/workflows/deploy.yml` builds and deploys to GitHub Pages 
 every push to `main`. Enable it once in your repo under Settings > Pages, setting
 Source to "GitHub Actions".
 
-`vite.config.ts` sets `base: '/'`, which is correct when serving from a custom domain
-or a `username.github.io` repo. If you host this as a project page without a custom
-domain instead (`username.github.io/your-repo-name/`), change `base` to
-`/your-repo-name/`.
+`vite.config.ts` sets `base: '/scrawler/'`, which matches this repo being served at
+`username.github.io/scrawler/`. If you rename the repo, update `base` to match
+(`/your-repo-name/`).
 
-If you're using a custom domain, `public/CNAME` should contain that domain (Vite
-copies it into `dist/` as-is on build) so the setting survives redeploys, and you'll
-need to point the domain's DNS at GitHub Pages. See
+If you want to serve this from a custom domain or a `username.github.io` repo instead
+of a project-page subpath, change `base` to `/`, and add a `public/CNAME` file
+containing that domain (Vite copies it into `dist/` as-is on build, so it survives
+redeploys). You'll also need to point the domain's DNS at GitHub Pages. See
 [GitHub's custom domain docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)
-for the exact records.
+for the exact records. Only do this once you actually own the domain and have set up
+its DNS, since the site won't load at any URL correctly until both match.
 
 ## How collaboration works
 
