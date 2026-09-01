@@ -40,9 +40,18 @@ Output goes to `dist/`. Serve it with any static file host.
 
 A workflow at `.github/workflows/deploy.yml` builds and deploys to GitHub Pages on
 every push to `main`. Enable it once in your repo under Settings > Pages, setting
-Source to "GitHub Actions". If you fork this to a different repo name, update `base`
-in `vite.config.ts` to match (`/your-repo-name/`), or set it to `/` if you're hosting
-at the root of a custom domain or a `username.github.io` repo.
+Source to "GitHub Actions".
+
+`vite.config.ts` sets `base: '/'`, which is correct when serving from a custom domain
+or a `username.github.io` repo. If you host this as a project page without a custom
+domain instead (`username.github.io/your-repo-name/`), change `base` to
+`/your-repo-name/`.
+
+If you're using a custom domain, `public/CNAME` should contain that domain (Vite
+copies it into `dist/` as-is on build) so the setting survives redeploys, and you'll
+need to point the domain's DNS at GitHub Pages. See
+[GitHub's custom domain docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site)
+for the exact records.
 
 ## How collaboration works
 
@@ -50,16 +59,21 @@ Each canvas is a [Yjs](https://github.com/yjs/yjs) document, persisted locally i
 IndexedDB. Sharing a tab starts a
 [y-webrtc](https://github.com/yjs/y-webrtc) connection using a random room id and
 password, both encoded only in the URL fragment (after the `#`), so nothing sensitive
-is ever sent to a server. Peers find each other through a public signaling server by
-default; the actual drawing data flows directly between browsers over WebRTC, not
-through the signaling server.
+is ever sent to a server. Peers find each other through a signaling server; the
+actual drawing data flows directly between browsers over WebRTC, not through the
+signaling server.
 
-Known limitation: the public signaling servers don't include a TURN server, so peers
-behind some restrictive NATs may fail to connect directly. If you run into this, or
-want more reliable connections for your own deployment, self-host the signaling
-server that ships with `y-webrtc` (`npx y-webrtc-signaling`) and point this app at it
-by editing `SIGNALING_SERVERS` in `src/collab/YDocManager.ts`, optionally paired with
-a TURN server.
+**The public signaling servers y-webrtc lists as defaults are unreliable in
+practice** (some are long-dead free-tier Heroku apps), so collaboration needs a
+signaling server that's actually reachable. `signaling-server/` in this repo is a
+small, deployable copy of the one y-webrtc ships, with instructions for running it
+free on Render. Deploy it, then add its URL to the front of `SIGNALING_SERVERS` in
+`src/collab/YDocManager.ts` (`wss://your-service.onrender.com`). It only helps peers
+find each other; it never sees drawing data.
+
+Separately, peers behind some restrictive NATs may fail to connect directly since
+there's no TURN server in the mix. That's a rarer edge case than the signaling
+servers being down, and worth pairing with a TURN server only if you run into it.
 
 Stopping and re-sharing a tab issues a new link. The old link stops syncing new
 changes, which is the only real way to revoke access in a serverless P2P setup.
