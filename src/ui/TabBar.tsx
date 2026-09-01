@@ -1,4 +1,11 @@
-import { useState, useSyncExternalStore } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react'
 import {
   createTab,
   deleteTab,
@@ -51,11 +58,9 @@ export function TabBar() {
         >
           {tab.shared && <span className="tab-shared-dot" title="Shared" />}
           {editingId === tab.id ? (
-            <input
-              className="tab-rename-input"
-              autoFocus
+            <RenameInput
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={setDraft}
               onBlur={commitRename}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') commitRename()
@@ -84,5 +89,38 @@ export function TabBar() {
         +
       </button>
     </div>
+  )
+}
+
+function RenameInput({
+  value,
+  onChange,
+  onBlur,
+  onKeyDown,
+  onClick,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onBlur: () => void
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void
+  onClick: (e: MouseEvent<HTMLInputElement>) => void
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    ref.current?.focus()
+    ref.current?.select()
+  }, [])
+
+  return (
+    <input
+      ref={ref}
+      className="tab-rename-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      onClick={onClick}
+    />
   )
 }

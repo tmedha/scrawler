@@ -90,10 +90,6 @@ export class BBoxCache {
     return box
   }
 
-  invalidate(id: string) {
-    this.cache.delete(id)
-  }
-
   clear() {
     this.cache.clear()
   }

@@ -111,6 +111,7 @@ export class CanvasController {
     this.refreshShapes()
 
     const observer = () => {
+      this.bboxCache.clear()
       this.refreshShapes()
       this.scheduleRender()
       this.onCapacityChange(!canCreateShape(session.shapesMap))
@@ -294,6 +295,7 @@ export class CanvasController {
         const screen = this.worldToClientScreen(world)
         this.onTextEditorRequest({ shapeId, world, screen })
       },
+      beginAction: () => session.undoManager.stopCapturing(),
     }
   }
 
@@ -321,6 +323,7 @@ export class CanvasController {
   }
 
   private handlePointerDown = (e: PointerEvent) => {
+    e.preventDefault()
     this.overlay.setPointerCapture(e.pointerId)
     const screen = this.screenPoint(e)
     this.pointers.set(e.pointerId, screen)
@@ -468,10 +471,7 @@ export class CanvasController {
         e.preventDefault()
         const session = this.session
         transactShapes(session.shapesMap, () => {
-          ids.forEach((id) => {
-            deleteShape(session.shapesMap, id)
-            this.bboxCache.invalidate(id)
-          })
+          ids.forEach((id) => deleteShape(session.shapesMap, id))
         })
         clearSelection()
       }

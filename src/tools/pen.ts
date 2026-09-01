@@ -16,6 +16,7 @@ export const penTool: Tool = {
 
   onPointerDown(ctx, p) {
     if (!ctx.hasCapacity()) return
+    ctx.beginAction()
     drawing = true
     points = [p.world]
     ctx.requestOverlayRender()

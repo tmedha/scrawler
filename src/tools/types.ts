@@ -27,6 +27,7 @@ export interface ToolContext {
   requestOverlayRender: () => void
   hasCapacity: () => boolean
   openTextEditor: (shapeId: string | null, worldPoint: Point) => void
+  beginAction: () => void
 }
 
 export interface PointerInfo {

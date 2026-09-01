@@ -81,6 +81,7 @@ function TextEditorOverlay({
       onClose()
       return
     }
+    session.undoManager.stopCapturing()
     const text = value.trim()
     if (request.shapeId) {
       if (text) updateShape(session.shapesMap, request.shapeId, { text })

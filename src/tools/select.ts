@@ -147,6 +147,7 @@ export const selectTool: Tool = {
     if (box) {
       const handle = hitTestHandle(box, ctx.camera.zoom, p.world[0], p.world[1])
       if (handle) {
+        ctx.beginAction()
         mode = handle === 'rotate' ? 'rotate' : 'resize'
         activeHandle = handle
         dragStart = p.world
@@ -167,6 +168,7 @@ export const selectTool: Tool = {
       if (!getSelection().has(hit.id)) {
         setSelection([hit.id])
       }
+      ctx.beginAction()
       mode = 'move'
       dragStart = p.world
       captureSnapshot(ctx)

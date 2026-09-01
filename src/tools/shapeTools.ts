@@ -12,6 +12,7 @@ function makeDragShapeTool(type: Extract<ShapeType, 'line' | 'arrow' | 'rectangl
 
     onPointerDown(ctx, p) {
       if (!ctx.hasCapacity()) return
+      ctx.beginAction()
       start = p.world
       end = p.world
       ctx.requestOverlayRender()

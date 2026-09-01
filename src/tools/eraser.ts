@@ -9,8 +9,6 @@ function eraseAt(ctx: ToolContext, x: number, y: number) {
   const shape = hitTestPoint(ctx.getShapes(), ctx.bboxCache, x, y, tolerance)
   if (shape) {
     deleteShape(ctx.shapesMap, shape.id)
-    ctx.bboxCache.invalidate(shape.id)
-    ctx.requestRender()
   }
 }
 
@@ -18,6 +16,7 @@ export const eraserTool: Tool = {
   id: 'eraser',
 
   onPointerDown(ctx, p) {
+    ctx.beginAction()
     erasing = true
     eraseAt(ctx, p.world[0], p.world[1])
   },
