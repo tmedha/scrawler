@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Tab } from '../types/tab'
 import { CanvasController, type TextEditorRequest } from './CanvasController'
+import type { Camera } from './viewport'
 import { activateTab, getCurrentSession } from '../collab/YDocManager'
 import { createShape, deleteShape, getShape, updateShape } from '../collab/shapes'
 import { canCreateShape } from '../storage/capacity'
@@ -10,9 +11,17 @@ interface Props {
   tab: Tab
   onController: (controller: CanvasController) => void
   onCapacityChange: (atCapacity: boolean) => void
+  onCameraChange: (camera: Camera) => void
+  onUndoStateChange: (state: { canUndo: boolean; canRedo: boolean }) => void
 }
 
-export function CanvasView({ tab, onController, onCapacityChange }: Props) {
+export function CanvasView({
+  tab,
+  onController,
+  onCapacityChange,
+  onCameraChange,
+  onUndoStateChange,
+}: Props) {
   const contentRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
   const controllerRef = useRef<CanvasController | null>(null)
@@ -24,6 +33,8 @@ export function CanvasView({ tab, onController, onCapacityChange }: Props) {
     const controller = new CanvasController(contentRef.current, overlayRef.current)
     controller.onTextEditorRequest = setTextEditor
     controller.onCapacityChange = onCapacityChange
+    controller.onCameraChange = onCameraChange
+    controller.onUndoStateChange = onUndoStateChange
     controllerRef.current = controller
     onController(controller)
     return () => {

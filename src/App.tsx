@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { TabBar } from './ui/TabBar'
-import { Toolbar } from './ui/Toolbar'
-import { SearchBox } from './ui/SearchBox'
-import { ExportButton } from './ui/ExportButton'
-import { ShareDialog } from './ui/ShareDialog'
+import { ToolPill } from './ui/ToolPill'
+import { PropertiesPanel } from './ui/PropertiesPanel'
+import { BottomLeftControls } from './ui/BottomLeftControls'
+import { TopRightControls } from './ui/TopRightControls'
 import { CanvasView } from './canvas/CanvasView'
 import type { CanvasController } from './canvas/CanvasController'
+import type { Camera } from './canvas/viewport'
 import {
   createJoinedTab,
   ensureAtLeastOneTab,
@@ -20,6 +21,8 @@ export default function App() {
   const tabs = useSyncExternalStore(subscribeTabs, getTabs)
   const activeId = useSyncExternalStore(subscribeTabs, getActiveTabId)
   const [atCapacity, setAtCapacity] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const [undoState, setUndoState] = useState({ canUndo: false, canRedo: false })
   const controllerRef = useRef<CanvasController | null>(null)
 
   useEffect(() => {
@@ -39,21 +42,35 @@ export default function App() {
   return (
     <div className="app">
       <TabBar />
-      <div className="action-bar">
-        <Toolbar atCapacity={atCapacity} />
-        <div className="action-bar-right">
-          <SearchBox getController={() => controllerRef.current} />
-          {activeTab && <ExportButton getController={() => controllerRef.current} tab={activeTab} />}
-          {activeTab && <ShareDialog tab={activeTab} getController={() => controllerRef.current} />}
-        </div>
-      </div>
       <div className="canvas-area">
         {activeTab && (
           <CanvasView
             tab={activeTab}
             onController={(c) => (controllerRef.current = c)}
             onCapacityChange={setAtCapacity}
+            onCameraChange={(camera: Camera) => setZoom(camera.zoom)}
+            onUndoStateChange={setUndoState}
           />
+        )}
+
+        <ToolPill atCapacity={atCapacity} />
+        <PropertiesPanel />
+
+        {atCapacity && (
+          <div className="capacity-toast">
+            5000 shape limit reached. Erase something to keep drawing.
+          </div>
+        )}
+
+        <BottomLeftControls
+          getController={() => controllerRef.current}
+          zoom={zoom}
+          canUndo={undoState.canUndo}
+          canRedo={undoState.canRedo}
+        />
+
+        {activeTab && (
+          <TopRightControls tab={activeTab} getController={() => controllerRef.current} />
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type { CanvasController } from '../canvas/CanvasController'
 import type { Tab } from '../types/tab'
 import { exportShapesToPng } from '../export/exportPng'
+import { DownloadIcon } from './icons'
 
 interface Props {
   getController: () => CanvasController | null
@@ -15,8 +16,8 @@ export function ExportButton({ getController, tab }: Props) {
   }
 
   return (
-    <button className="export-btn" title="Download canvas as PNG" onClick={handleExport}>
-      Download
+    <button className="icon-btn" title="Download canvas as PNG" onClick={handleExport}>
+      <DownloadIcon />
     </button>
   )
 }

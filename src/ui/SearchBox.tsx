@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { CanvasController } from '../canvas/CanvasController'
 import { findMatches } from '../search/findOnCanvas'
 import { rotatedBBox } from '../canvas/bbox'
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, SearchIcon } from './icons'
 
 interface Props {
   getController: () => CanvasController | null
@@ -28,8 +29,8 @@ export function SearchBox({ getController }: Props) {
 
   if (!open) {
     return (
-      <button className="search-toggle" title="Find on canvas" onClick={() => setOpen(true)}>
-        Find
+      <button className="icon-btn" title="Find on canvas" onClick={() => setOpen(true)}>
+        <SearchIcon />
       </button>
     )
   }
@@ -52,19 +53,20 @@ export function SearchBox({ getController }: Props) {
       <span className="search-count">
         {matches.length > 0 ? `${index + 1}/${matches.length}` : '0/0'}
       </span>
-      <button onClick={() => goTo(index - 1)} disabled={matches.length === 0}>
-        ‹
+      <button title="Previous match" onClick={() => goTo(index - 1)} disabled={matches.length === 0}>
+        <ChevronLeftIcon size={15} />
       </button>
-      <button onClick={() => goTo(index + 1)} disabled={matches.length === 0}>
-        ›
+      <button title="Next match" onClick={() => goTo(index + 1)} disabled={matches.length === 0}>
+        <ChevronRightIcon size={15} />
       </button>
       <button
+        title="Close"
         onClick={() => {
           setOpen(false)
           setQuery('')
         }}
       >
-        ×
+        <CloseIcon size={15} />
       </button>
     </div>
   )

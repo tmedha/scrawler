@@ -3,7 +3,7 @@ import { deleteShape, getAllShapes, transactShapes } from '../collab/shapes'
 import { canCreateShape } from '../storage/capacity'
 import { getRemoteStates, setCursor } from '../collab/awareness'
 import type { BBox, Point, Shape } from '../types/shape'
-import { BBoxCache, bboxIntersects } from './bbox'
+import { BBoxCache, bboxIntersects, rotatedBBox, unionBBox } from './bbox'
 import { drawShape } from './draw'
 import {
   createCamera,
@@ -57,9 +57,12 @@ export class CanvasController {
   private unsubSelection: () => void
   private unobserveShapes: (() => void) | null = null
   private unbindAwareness: (() => void) | null = null
+  private unbindUndoStack: (() => void) | null = null
 
   onTextEditorRequest: (req: TextEditorRequest) => void = () => {}
   onCapacityChange: (atCapacity: boolean) => void = () => {}
+  onCameraChange: (camera: Camera) => void = () => {}
+  onUndoStateChange: (state: { canUndo: boolean; canRedo: boolean }) => void = () => {}
 
   constructor(content: HTMLCanvasElement, overlay: HTMLCanvasElement) {
     this.content = content
@@ -99,13 +102,15 @@ export class CanvasController {
     this.unsubSelection()
     this.unobserveShapes?.()
     this.unbindAwareness?.()
+    this.unbindUndoStack?.()
     if (this.overlayFrame) cancelAnimationFrame(this.overlayFrame)
   }
 
   setSession(session: DocSession, tabId: string) {
     this.unobserveShapes?.()
+    this.unbindUndoStack?.()
     this.session = session
-    this.camera = this.cameraByTab.get(tabId) ?? createCamera()
+    this.setCamera(this.cameraByTab.get(tabId) ?? createCamera())
     this.cameraByTab.set(tabId, this.camera)
     this.bboxCache.clear()
     this.refreshShapes()
@@ -119,9 +124,27 @@ export class CanvasController {
     session.shapesMap.observeDeep(observer)
     this.unobserveShapes = () => session.shapesMap.unobserveDeep(observer)
 
+    const reportUndoState = () =>
+      this.onUndoStateChange({
+        canUndo: session.undoManager.undoStack.length > 0,
+        canRedo: session.undoManager.redoStack.length > 0,
+      })
+    session.undoManager.on('stack-item-added', reportUndoState)
+    session.undoManager.on('stack-item-popped', reportUndoState)
+    this.unbindUndoStack = () => {
+      session.undoManager.off('stack-item-added', reportUndoState)
+      session.undoManager.off('stack-item-popped', reportUndoState)
+    }
+    reportUndoState()
+
     this.rebindAwareness()
     this.onCapacityChange(!canCreateShape(session.shapesMap))
     this.scheduleRender()
+  }
+
+  private setCamera(camera: Camera) {
+    this.camera = camera
+    this.onCameraChange(camera)
   }
 
   rebindAwareness() {
@@ -314,12 +337,38 @@ export class CanvasController {
     const w = box.maxX - box.minX || 200
     const h = box.maxY - box.minY || 200
     const zoom = Math.min(this.width / (w + 200), this.height / (h + 200), 4)
-    this.camera = {
+    this.setCamera({
       zoom,
       x: (box.minX + box.maxX) / 2 - this.width / 2 / zoom,
       y: (box.minY + box.maxY) / 2 - this.height / 2 / zoom,
-    }
+    })
     this.scheduleRender()
+  }
+
+  fitToContent() {
+    const box = unionBBox(this.shapes.map(rotatedBBox))
+    if (box) this.fitToBBox(box)
+  }
+
+  getZoom(): number {
+    return this.camera.zoom
+  }
+
+  zoomBy(factor: number) {
+    this.setCamera(zoomCameraAt(this.camera, this.width / 2, this.height / 2, factor))
+    this.scheduleRender()
+  }
+
+  resetZoom() {
+    this.zoomBy(1 / this.camera.zoom)
+  }
+
+  undo() {
+    this.session?.undoManager.undo()
+  }
+
+  redo() {
+    this.session?.undoManager.redo()
   }
 
   private handlePointerDown = (e: PointerEvent) => {
@@ -364,7 +413,7 @@ export class CanvasController {
     if (this.panPointerId === e.pointerId && this.panLast) {
       const dx = screen[0] - this.panLast[0]
       const dy = screen[1] - this.panLast[1]
-      this.camera = panCamera(this.camera, dx, dy)
+      this.setCamera(panCamera(this.camera, dx, dy))
       this.panLast = screen
       this.scheduleRender()
       return
@@ -419,10 +468,11 @@ export class CanvasController {
 
     if (this.pinchLastDist > 0) {
       const factor = dist / this.pinchLastDist
-      this.camera = zoomCameraAt(this.camera, mid[0], mid[1], factor)
+      let camera = zoomCameraAt(this.camera, mid[0], mid[1], factor)
       const dx = mid[0] - this.pinchLastMid[0]
       const dy = mid[1] - this.pinchLastMid[1]
-      this.camera = panCamera(this.camera, dx, dy)
+      camera = panCamera(camera, dx, dy)
+      this.setCamera(camera)
     }
     this.pinchLastDist = dist
     this.pinchLastMid = mid
@@ -437,9 +487,9 @@ export class CanvasController {
 
     if (e.ctrlKey || e.metaKey) {
       const factor = Math.exp(-e.deltaY * 0.01)
-      this.camera = zoomCameraAt(this.camera, sx, sy, factor)
+      this.setCamera(zoomCameraAt(this.camera, sx, sy, factor))
     } else {
-      this.camera = panCamera(this.camera, -e.deltaX, -e.deltaY)
+      this.setCamera(panCamera(this.camera, -e.deltaX, -e.deltaY))
     }
     this.scheduleRender()
   }
