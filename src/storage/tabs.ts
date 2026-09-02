@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import type { Tab } from '../types/tab'
+import type { Tab, TabBackground } from '../types/tab'
 
 const STORAGE_KEY = 'scrawler:tabs'
 const ACTIVE_KEY = 'scrawler:activeTab'
@@ -12,7 +12,8 @@ function readFromStorage(): Tab[] {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (!raw) return []
   try {
-    return JSON.parse(raw) as Tab[]
+    const parsed = JSON.parse(raw) as Tab[]
+    return parsed.map((t) => ({ ...t, background: t.background ?? 'plain' }))
   } catch {
     return []
   }
@@ -56,6 +57,7 @@ export function createTab(name = 'Untitled'): Tab {
     name,
     order: cache.length ? Math.max(...cache.map((t) => t.order)) + 1 : 0,
     shared: false,
+    background: 'plain',
   }
   write([...cache, tab])
   return tab
@@ -71,6 +73,7 @@ export function createJoinedTab(roomId: string, password: string, name = 'Shared
     shared: true,
     roomId,
     roomPassword: password,
+    background: 'plain',
   }
   write([...cache, tab])
   return tab
@@ -78,6 +81,10 @@ export function createJoinedTab(roomId: string, password: string, name = 'Shared
 
 export function renameTab(id: string, name: string) {
   write(cache.map((t) => (t.id === id ? { ...t, name } : t)))
+}
+
+export function setTabBackground(id: string, background: TabBackground) {
+  write(cache.map((t) => (t.id === id ? { ...t, background } : t)))
 }
 
 export function deleteTab(id: string) {

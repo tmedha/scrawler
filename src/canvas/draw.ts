@@ -1,6 +1,7 @@
 import getStroke from 'perfect-freehand'
 import type { Shape } from '../types/shape'
 import { rawBBox } from './bbox'
+import { getImage } from './imageCache'
 
 function strokeOutlinePath(points: [number, number][], strokeWidth: number): Path2D {
   const outline = getStroke(points, {
@@ -113,6 +114,23 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
         ctx.font = `${shape.fontSize ?? 20}px sans-serif`
         ctx.textBaseline = 'top'
         ctx.fillText(shape.text ?? '', x, y)
+        break
+      }
+      case 'image': {
+        if (!shape.src) break
+        const [[x1, y1], [x2, y2]] = shape.points
+        const x = Math.min(x1, x2)
+        const y = Math.min(y1, y2)
+        const w = Math.abs(x2 - x1)
+        const h = Math.abs(y2 - y1)
+        const img = getImage(shape.src)
+        if (img) {
+          ctx.drawImage(img, x, y, w, h)
+        } else {
+          ctx.strokeStyle = '#ccc'
+          ctx.lineWidth = 1
+          ctx.strokeRect(x, y, w, h)
+        }
         break
       }
     }

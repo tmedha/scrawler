@@ -3,6 +3,7 @@ import { deleteShape, getAllShapes, transactShapes } from '../collab/shapes'
 import { canCreateShape } from '../storage/capacity'
 import { getRemoteStates, setCursor } from '../collab/awareness'
 import type { BBox, Point, Shape } from '../types/shape'
+import type { TabBackground } from '../types/tab'
 import { BBoxCache, bboxIntersects, rotatedBBox, unionBBox } from './bbox'
 import { drawShape } from './draw'
 import {
@@ -19,9 +20,11 @@ import { getToolState, subscribeToolState } from '../tools/store'
 import { subscribeSelection, getSelection, clearSelection } from './selection'
 import { isLaserActive } from '../tools/laser'
 import type { ToolContext } from '../tools/types'
+import { subscribeImageLoads } from './imageCache'
 
 const PADDING = 40
 const PRESENCE_FADE_MS = 600
+const LINE_SPACING = 28
 
 export type TextEditorRequest = { shapeId: string | null; world: Point; screen: Point } | null
 
@@ -41,6 +44,7 @@ export class CanvasController {
   private width = 0
   private height = 0
   private dpr = 1
+  private backgroundStyle: TabBackground = 'plain'
 
   private contentDirty = true
   private overlayFrame: number | null = null
@@ -58,11 +62,13 @@ export class CanvasController {
   private unobserveShapes: (() => void) | null = null
   private unbindAwareness: (() => void) | null = null
   private unbindUndoStack: (() => void) | null = null
+  private unbindImageLoads: () => void
 
   onTextEditorRequest: (req: TextEditorRequest) => void = () => {}
   onCapacityChange: (atCapacity: boolean) => void = () => {}
   onCameraChange: (camera: Camera) => void = () => {}
   onUndoStateChange: (state: { canUndo: boolean; canRedo: boolean }) => void = () => {}
+  onImagePaste: (file: File) => void = () => {}
 
   constructor(content: HTMLCanvasElement, overlay: HTMLCanvasElement) {
     this.content = content
@@ -81,9 +87,11 @@ export class CanvasController {
     overlay.addEventListener('dblclick', this.handleDoubleClick)
     window.addEventListener('keydown', this.handleKeyDown)
     window.addEventListener('keyup', this.handleKeyUp)
+    window.addEventListener('paste', this.handlePaste)
 
     this.unsubTool = subscribeToolState(() => this.scheduleOverlay())
     this.unsubSelection = subscribeSelection(() => this.scheduleOverlay())
+    this.unbindImageLoads = subscribeImageLoads(() => this.scheduleRender())
 
     this.resize()
   }
@@ -98,8 +106,10 @@ export class CanvasController {
     this.overlay.removeEventListener('dblclick', this.handleDoubleClick)
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
+    window.removeEventListener('paste', this.handlePaste)
     this.unsubTool()
     this.unsubSelection()
+    this.unbindImageLoads()
     this.unobserveShapes?.()
     this.unbindAwareness?.()
     this.unbindUndoStack?.()
@@ -160,6 +170,12 @@ export class CanvasController {
 
   saveCamera(tabId: string) {
     this.cameraByTab.set(tabId, this.camera)
+  }
+
+  setBackgroundStyle(style: TabBackground) {
+    if (this.backgroundStyle === style) return
+    this.backgroundStyle = style
+    this.scheduleRender()
   }
 
   getShapes(): Shape[] {
@@ -232,6 +248,11 @@ export class CanvasController {
     this.applyTransform(ctx)
 
     const view = visibleWorldRect(this.camera, this.width, this.height)
+
+    if (this.backgroundStyle === 'lined') {
+      this.drawLinedBackground(ctx, view)
+    }
+
     const padded: BBox = {
       minX: view.minX - PADDING / this.camera.zoom,
       minY: view.minY - PADDING / this.camera.zoom,
@@ -244,6 +265,19 @@ export class CanvasController {
       if (!bboxIntersects(box, padded)) continue
       drawShape(ctx, shape)
     }
+  }
+
+  private drawLinedBackground(ctx: CanvasRenderingContext2D, view: BBox) {
+    const spacing = LINE_SPACING
+    const startY = Math.floor(view.minY / spacing) * spacing
+    ctx.strokeStyle = 'rgba(70, 100, 170, 0.2)'
+    ctx.lineWidth = 1 / (this.dpr * this.camera.zoom)
+    ctx.beginPath()
+    for (let y = startY; y <= view.maxY; y += spacing) {
+      ctx.moveTo(view.minX, y)
+      ctx.lineTo(view.maxX, y)
+    }
+    ctx.stroke()
   }
 
   private renderOverlay() {
@@ -352,6 +386,10 @@ export class CanvasController {
 
   getZoom(): number {
     return this.camera.zoom
+  }
+
+  getViewportCenterWorld(): Point {
+    return screenToWorld(this.camera, this.width / 2, this.height / 2)
   }
 
   zoomBy(factor: number) {
@@ -502,6 +540,27 @@ export class CanvasController {
     const toolCtx = this.buildToolContext()
     const tool = getTool('text')
     tool.onPointerDown?.(toolCtx, { world, screen, pointerId: -1, shiftKey: false }, e as unknown as PointerEvent)
+  }
+
+  private handlePaste = (e: ClipboardEvent) => {
+    if (!this.session) return
+    const target = e.target as HTMLElement | null
+    const isEditing =
+      target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+    if (isEditing) return
+
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.kind === 'file' && (item.type.startsWith('image/') || item.type === 'application/pdf')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          this.onImagePaste(file)
+        }
+        break
+      }
+    }
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {

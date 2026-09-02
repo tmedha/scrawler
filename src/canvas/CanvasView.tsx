@@ -13,6 +13,7 @@ interface Props {
   onCapacityChange: (atCapacity: boolean) => void
   onCameraChange: (camera: Camera) => void
   onUndoStateChange: (state: { canUndo: boolean; canRedo: boolean }) => void
+  onImageFile: (file: File) => void
 }
 
 export function CanvasView({
@@ -21,6 +22,7 @@ export function CanvasView({
   onCapacityChange,
   onCameraChange,
   onUndoStateChange,
+  onImageFile,
 }: Props) {
   const contentRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
@@ -35,6 +37,7 @@ export function CanvasView({
     controller.onCapacityChange = onCapacityChange
     controller.onCameraChange = onCameraChange
     controller.onUndoStateChange = onUndoStateChange
+    controller.onImagePaste = onImageFile
     controllerRef.current = controller
     onController(controller)
     return () => {
@@ -53,6 +56,10 @@ export function CanvasView({
     prevTabId.current = tab.id
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.id, tab.shared, tab.roomId, tab.roomPassword])
+
+  useEffect(() => {
+    controllerRef.current?.setBackgroundStyle(tab.background)
+  }, [tab.id, tab.background])
 
   return (
     <div className="canvas-view">

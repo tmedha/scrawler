@@ -88,6 +88,7 @@ export function distanceToShape(shape: Shape, x: number, y: number): number {
     case 'ellipse':
       return distToEllipseStroke(lx, ly, shape.points[0][0], shape.points[0][1], shape.points[1][0], shape.points[1][1])
     case 'text':
+    case 'image':
       return bboxContainsPoint(rawBBox(shape), lx, ly) ? 0 : Infinity
     default:
       return Infinity

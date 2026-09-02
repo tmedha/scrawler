@@ -1,4 +1,4 @@
-export type ShapeType = 'pen' | 'line' | 'arrow' | 'rectangle' | 'ellipse' | 'text'
+export type ShapeType = 'pen' | 'line' | 'arrow' | 'rectangle' | 'ellipse' | 'text' | 'image'
 
 export type Point = [number, number]
 
@@ -11,6 +11,7 @@ export interface Shape {
   rotation: number
   text?: string
   fontSize?: number
+  src?: string
   createdAt: number
 }
 

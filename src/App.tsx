@@ -16,6 +16,7 @@ import {
   subscribeTabs,
 } from './storage/tabs'
 import { parseJoinHash } from './collab/share'
+import { insertFile } from './ui/insertImage'
 
 export default function App() {
   const tabs = useSyncExternalStore(subscribeTabs, getTabs)
@@ -39,6 +40,10 @@ export default function App() {
 
   const activeTab = tabs.find((t) => t.id === activeId) ?? null
 
+  function handleImageFile(file: File) {
+    insertFile(file, controllerRef.current)
+  }
+
   return (
     <div className="app">
       <TabBar />
@@ -50,10 +55,11 @@ export default function App() {
             onCapacityChange={setAtCapacity}
             onCameraChange={(camera: Camera) => setZoom(camera.zoom)}
             onUndoStateChange={setUndoState}
+            onImageFile={handleImageFile}
           />
         )}
 
-        <ToolPill atCapacity={atCapacity} />
+        <ToolPill atCapacity={atCapacity} onImageFile={handleImageFile} />
         <PropertiesPanel />
 
         {atCapacity && (

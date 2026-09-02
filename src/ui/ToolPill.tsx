@@ -1,10 +1,11 @@
-import { useSyncExternalStore } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
 import type { ToolId } from '../tools/types'
 import { getToolState, setActiveTool, subscribeToolState } from '../tools/store'
 import {
   ArrowIcon,
   EllipseIcon,
   EraserIcon,
+  ImageIcon,
   LaserIcon,
   LineIcon,
   PenIcon,
@@ -22,17 +23,18 @@ const TOOLS: { id: ToolId; label: string; icon: (size?: number) => JSX.Element }
   { id: 'rectangle', label: 'Rectangle', icon: (s) => <RectangleIcon size={s} /> },
   { id: 'ellipse', label: 'Ellipse', icon: (s) => <EllipseIcon size={s} /> },
   { id: 'text', label: 'Text', icon: (s) => <TextIcon size={s} /> },
-  { id: 'laser', label: 'Laser pointer', icon: (s) => <LaserIcon size={s} /> },
 ]
 
 const DRAWING_TOOLS = new Set<ToolId>(['pen', 'line', 'arrow', 'rectangle', 'ellipse', 'text'])
 
 interface Props {
   atCapacity: boolean
+  onImageFile: (file: File) => void
 }
 
-export function ToolPill({ atCapacity }: Props) {
+export function ToolPill({ atCapacity, onImageFile }: Props) {
   const activeTool = useSyncExternalStore(subscribeToolState, () => getToolState().activeTool)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
     <div className="tool-pill" role="group" aria-label="Tools">
@@ -47,6 +49,32 @@ export function ToolPill({ atCapacity }: Props) {
           {t.icon()}
         </button>
       ))}
+      <button
+        className="pill-btn"
+        title="Insert image or PDF"
+        disabled={atCapacity}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <ImageIcon />
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onImageFile(file)
+          e.target.value = ''
+        }}
+      />
+      <button
+        className={activeTool === 'laser' ? 'pill-btn active' : 'pill-btn'}
+        title="Laser pointer"
+        onClick={() => setActiveTool('laser')}
+      >
+        <LaserIcon />
+      </button>
     </div>
   )
 }

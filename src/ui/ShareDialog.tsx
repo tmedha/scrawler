@@ -5,6 +5,7 @@ import { buildShareUrl, shareTab, unshareTab } from '../collab/share'
 import { getCurrentSession } from '../collab/YDocManager'
 import { ShareIcon } from './icons'
 import { useClickOutside } from './useClickOutside'
+import { copyToClipboard } from './clipboard'
 
 interface Props {
   tab: Tab
@@ -16,6 +17,7 @@ export function ShareDialog({ tab, getController }: Props) {
   const [copied, setCopied] = useState(false)
   const [peerCount, setPeerCount] = useState(0)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const linkInputRef = useRef<HTMLInputElement>(null)
 
   useClickOutside(wrapperRef, () => setOpen(false))
 
@@ -47,11 +49,16 @@ export function ShareDialog({ tab, getController }: Props) {
     setOpen(false)
   }
 
-  function copy() {
+  async function copy() {
     if (!url) return
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
+    const success = await copyToClipboard(url)
+    if (success) {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } else {
+      linkInputRef.current?.focus()
+      linkInputRef.current?.select()
+    }
   }
 
   return (
@@ -65,7 +72,7 @@ export function ShareDialog({ tab, getController }: Props) {
       </button>
       {open && url && (
         <div className="popover popover-below share-popover">
-          <input readOnly value={url} onFocus={(e) => e.target.select()} />
+          <input ref={linkInputRef} readOnly value={url} onFocus={(e) => e.target.select()} />
           <div className="share-popover-actions">
             <button onClick={copy}>{copied ? 'Copied' : 'Copy link'}</button>
             <button onClick={handleUnshare}>Stop sharing</button>

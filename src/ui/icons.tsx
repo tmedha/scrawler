@@ -184,3 +184,35 @@ export function CloseIcon({ size }: IconProps) {
     size
   )
 }
+
+export function LinesIcon({ size }: IconProps) {
+  return base(
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
+      <path d="M6.5 9h11M6.5 12.5h11M6.5 16h7" />
+    </>,
+    size
+  )
+}
+
+export function ImageIcon({ size }: IconProps) {
+  return base(
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4 17l5.5-5.5a1.5 1.5 0 012.1 0L20 20" />
+    </>,
+    size
+  )
+}
+
+export function UploadIcon({ size }: IconProps) {
+  return base(
+    <>
+      <path d="M12 16V4" />
+      <path d="M7 9l5-5 5 5" />
+      <path d="M4 20h16" />
+    </>,
+    size
+  )
+}
